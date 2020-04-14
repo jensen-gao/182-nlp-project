@@ -1,0 +1,5 @@
+tensorflow-gpu==1.13.2
+nltk==3.4
+tensor2tensor==1.13.4
+tensorflow-probability==0.6.0
+mesh-tensorflow==0.0.5
