@@ -18,9 +18,6 @@ def split_data(load_path='data', save_path='data'):
         for item in json_lines.reader(f):
             stars.append(item['stars'])
     assert len(text) == len(paraphrased_text) == len(stars)
-    text = text[:100]
-    paraphrased_text = paraphrased_text[:100]
-    stars = stars[:100]
     n_data = len(text)
     random.seed(123456)
     combined = list(zip(text, paraphrased_text, stars))
