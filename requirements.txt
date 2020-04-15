@@ -2,3 +2,4 @@ numpy
 json_lines
 transformers
 tensorflow
+torch

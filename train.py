@@ -4,13 +4,13 @@ from data import load_data
 import transformers
 from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalClassification
 
-config = transformers.DistilBertConfig.from_pretrained('distilbert-base-uncased', num_labels=4)
-model = TFDistilBertForOrdinalClassification.from_pretrained('distilbert-base-uncased', config=config)
+config = transformers.DistilBertConfig.from_pretrained('pretrained/', num_labels=4)
+model = TFDistilBertForOrdinalClassification.from_pretrained('pretrained/', config=config, from_pt=True)
 loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 model.compile(optimizer='adam', loss=loss)
 
 epochs = 1
-batch_size = 4
+batch_size = 16
 
 train_dataset = load_data(split='train', batch_size=batch_size, weighted=True)
 valid_dataset = load_data(split='valid', batch_size=batch_size)
@@ -31,8 +31,9 @@ def learning_rate_schedule(batch, logs):
 
 lr_callback = tf.keras.callbacks.LambdaCallback(on_batch_begin=learning_rate_schedule)
 
-checkpoint_dir = 'training'
+checkpoint_dir = 'checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt_{epoch}')
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
 model.fit(train_dataset, epochs=epochs, callbacks=[checkpoint_callback, lr_callback], validation_data=valid_dataset)
+model.save_pretrained('models')

@@ -1,3 +1,4 @@
 json_lines
 transformers
 tensorflow-gpu
+torch
