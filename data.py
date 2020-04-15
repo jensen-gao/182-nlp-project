@@ -17,6 +17,9 @@ def process_data(path='data'):
         for item in json_lines.reader(f):
             stars.append(item['stars'])
     assert len(text) == len(paraphrased_text) == len(stars)
+    text = text[:100]
+    paraphrased_text = paraphrased_text[:100]
+    stars = stars[:100]
     np.random.seed(123456)
     n_data = len(text)
     order = np.random.permutation(n_data)
@@ -27,33 +30,32 @@ def process_data(path='data'):
     test_indices = order[train_len + valid_len:]
 
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-    tokens = tokenizer.batch_encode_plus(text)['input_ids']
-    tokens = np.array([seq + [0] * (512 - len(seq)) if len(seq) <= 512 else seq[:129] + seq[-383:] for seq in tokens])
-    paraphrased_tokens = tokenizer.batch_encode_plus(paraphrased_text)['input_ids']
-    paraphrased_tokens = np.array([seq + [0] * (512 - len(seq)) if len(seq) <= 512 else seq[:129] + seq[-383:]
-                                   for seq in paraphrased_tokens])
+    encoding = tokenizer.batch_encode_plus(text, max_length=512, pad_to_max_length=True, return_attention_masks=True)
+    ids = np.array(encoding['input_ids'])
+    masks = np.array(encoding['attention_mask'])
+    paraphrased_encoding = tokenizer.batch_encode_plus(paraphrased_text, max_length=512, pad_to_max_length=True,
+                                                       return_attention_masks=True)
+    paraphrased_ids = np.array(paraphrased_encoding['input_ids'])
+    paraphrased_masks = np.array(paraphrased_encoding['attention_mask'])
     stars = np.array(stars)
 
-    train_tokens = np.concatenate((tokens[train_indices], paraphrased_tokens[train_indices]), axis=0)
-    train_stars = np.tile(stars[train_indices], 2)
-    train_data = (train_tokens, train_stars)
-    pickle.dump(train_data, open(os.path.join(path, 'train.pickle'), 'wb'))
+    write_data(os.path.join(path, 'train.pickle'), ids, paraphrased_ids, masks, paraphrased_masks, stars, train_indices)
+    write_data(os.path.join(path, 'valid.pickle'), ids, paraphrased_ids, masks, paraphrased_masks, stars, valid_indices)
+    write_data(os.path.join(path, 'test.pickle'), ids, paraphrased_ids, masks, paraphrased_masks, stars, test_indices)
 
-    valid_tokens = np.concatenate((tokens[valid_indices], paraphrased_tokens[valid_indices]), axis=0)
-    valid_stars = np.tile(stars[valid_indices], 2)
-    valid_data = (valid_tokens, valid_stars)
-    pickle.dump(valid_data, open(os.path.join(path, 'valid.pickle'), 'wb'))
 
-    test_tokens = np.concatenate((tokens[test_indices], paraphrased_tokens[test_indices]), axis=0)
-    test_stars = np.tile(stars[test_indices], 2)
-    test_data = (test_tokens, test_stars)
-    pickle.dump(test_data, open(os.path.join(path, 'test.pickle'), 'wb'))
+def write_data(path, ids, paraphrased_ids, masks, paraphrased_masks, stars, indices):
+    combined_ids = np.concatenate((ids[indices], paraphrased_ids[indices]), axis=0)
+    combined_masks = np.concatenate((masks[indices], paraphrased_masks[indices]), axis=0)
+    combined_stars = np.tile(stars[indices], 2)
+    combined_data = (combined_ids, combined_masks, combined_stars)
+    pickle.dump(combined_data, open(path, 'wb'))
 
 
 def load_data(split='train', path='data', buffer_size=10000, batch_size=24, weighted=False):
     data = pickle.load(open(os.path.join(path, split + '.pickle'), 'rb'))
-    stars = np.array([[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in data[1]])
-    data = tf.data.Dataset.from_tensor_slices((data[0], stars))
+    stars = np.array([[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in data[2]])
+    data = tf.data.Dataset.from_tensor_slices(({'input_ids': data[0], 'attention_mask': data[1]}, stars))
     if split == 'train':
         data = data.shuffle(buffer_size).batch(batch_size)
         if weighted:
