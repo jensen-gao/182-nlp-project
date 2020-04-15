@@ -1,6 +1,6 @@
 import os
 import tensorflow as tf
-from data import load_data
+from data_utils import load_data
 import transformers
 from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalClassification
 

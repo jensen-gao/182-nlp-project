@@ -65,7 +65,7 @@ t2t-decoder \
   --model=transformer \
   --hparams_set=transformer_big \
   --hparams="sampling_method=random,sampling_temp=${sampling_temp}" \
-  --decode_hparams="beam_size=1,batch_size=32" \
+  --decode_hparams="beam_size=1,batch_size=24" \
   --checkpoint_path=checkpoints/enfr/model.ckpt-500000 \
   --output_dir=/tmp/t2t \
   --decode_from_file=${forward_src_dir}/file_${worker_id}_of_${replicas}.txt \
@@ -78,7 +78,7 @@ t2t-decoder \
   --model=transformer \
   --hparams_set=transformer_big \
   --hparams="sampling_method=random,sampling_temp=${sampling_temp}" \
-  --decode_hparams="beam_size=1,batch_size=32,alpha=0" \
+  --decode_hparams="beam_size=1,batch_size=24,alpha=0" \
   --checkpoint_path=checkpoints/fren/model.ckpt-500000 \
   --output_dir=/tmp/t2t \
   --decode_from_file=${forward_gen_dir}/file_${worker_id}_of_${replicas}.txt \
