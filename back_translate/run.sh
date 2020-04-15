@@ -20,7 +20,7 @@ we divide the data into three parts, and only process one part
 according to the worker_id.
 '''
 replicas=10
-worker_id=0
+worker_id=$1
 
 '''
 input_file: The file to be back translated. We assume that each paragraph is in
@@ -65,7 +65,7 @@ t2t-decoder \
   --model=transformer \
   --hparams_set=transformer_big \
   --hparams="sampling_method=random,sampling_temp=${sampling_temp}" \
-  --decode_hparams="beam_size=1,batch_size=16" \
+  --decode_hparams="beam_size=1,batch_size=32" \
   --checkpoint_path=checkpoints/enfr/model.ckpt-500000 \
   --output_dir=/tmp/t2t \
   --decode_from_file=${forward_src_dir}/file_${worker_id}_of_${replicas}.txt \
@@ -78,7 +78,7 @@ t2t-decoder \
   --model=transformer \
   --hparams_set=transformer_big \
   --hparams="sampling_method=random,sampling_temp=${sampling_temp}" \
-  --decode_hparams="beam_size=1,batch_size=16,alpha=0" \
+  --decode_hparams="beam_size=1,batch_size=32,alpha=0" \
   --checkpoint_path=checkpoints/fren/model.ckpt-500000 \
   --output_dir=/tmp/t2t \
   --decode_from_file=${forward_gen_dir}/file_${worker_id}_of_${replicas}.txt \
