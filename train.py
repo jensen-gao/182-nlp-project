@@ -5,12 +5,16 @@ import transformers
 from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalClassification
 
 config = transformers.DistilBertConfig.from_pretrained('pretrained/', num_labels=4)
-model = TFDistilBertForOrdinalClassification.from_pretrained('pretrained/', config=config, from_pt=True)
+strategy = tf.distribute.MirroredStrategy()
 loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-model.compile(optimizer='adam', loss=loss)
+
+with strategy.scope():
+    model = TFDistilBertForOrdinalClassification.from_pretrained('pretrained/', config=config, from_pt=True)
+    model.compile(optimizer='adam', loss=loss)
 
 epochs = 1
-batch_size = 16
+batch_size_per_replica = 32
+batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
 train_dataset = load_data(split='train', batch_size=batch_size, weighted=True)
 valid_dataset = load_data(split='valid', batch_size=batch_size)
