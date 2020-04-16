@@ -59,13 +59,14 @@ def process_data(load_path='data', save_path='data'):
 
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
     train_ids, train_masks = encode_data(train_text, tokenizer)
-    valid_ids, valid_masks = encode_data(valid_text, tokenizer)
-    test_ids, test_masks = encode_data(test_text, tokenizer)
-
     train_data = (train_ids, train_masks, train_stars)
     pickle.dump(train_data, open(os.path.join(save_path, 'train.pickle'), 'wb'))
+
+    valid_ids, valid_masks = encode_data(valid_text, tokenizer)
     valid_data = (valid_ids, valid_masks, valid_stars)
     pickle.dump(valid_data, open(os.path.join(save_path, 'valid.pickle'), 'wb'))
+
+    test_ids, test_masks = encode_data(test_text, tokenizer)
     test_data = (test_ids, test_masks, test_stars)
     pickle.dump(test_data, open(os.path.join(save_path, 'test.pickle'), 'wb'))
 
