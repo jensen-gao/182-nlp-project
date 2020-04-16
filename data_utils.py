@@ -23,8 +23,8 @@ def split_data(load_path='data', save_path='data'):
     combined = list(zip(text, paraphrased_text, stars))
     random.shuffle(combined)
     text, paraphrased_text, stars = zip(*combined)
-    train_len = math.floor(0.6 * n_data)
-    valid_len = math.floor(0.2 * n_data)
+    train_len = math.floor(0.7 * n_data)
+    valid_len = math.floor(0.1 * n_data)
     train_text = text[:train_len] + paraphrased_text[:train_len]
     valid_text = text[train_len: train_len + valid_len] + paraphrased_text[train_len: train_len + valid_len]
     test_text = text[train_len + valid_len:] + paraphrased_text[train_len + valid_len:]
