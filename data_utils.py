@@ -57,31 +57,40 @@ def process_data(load_path='data', save_path='data'):
     assert len(valid_text) == len(valid_stars)
     assert len(test_text) == len(test_stars)
 
+    random.seed(123456)
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-    train_ids, train_masks = encode_data(train_text, tokenizer)
-    train_data = (train_ids, train_masks, train_stars)
+    ids, masks = encode_data(train_text, tokenizer)
+    data = list(zip(ids, masks, train_stars))
+    random.shuffle(data)
+    ids, masks, stars = zip(*data)
+    star_labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
+    data = tf.data.Dataset.from_tensor_slices(({'input_ids': data[0], 'attention_mask': data[1]}, stars))
+
+
     pickle.dump(train_data, open(os.path.join(save_path, 'train.pickle'), 'wb'))
 
     valid_ids, valid_masks = encode_data(valid_text, tokenizer)
-    valid_data = (valid_ids, valid_masks, valid_stars)
+    valid_data = list(zip(valid_ids, valid_masks, valid_stars))
+    valid_data = zip(*valid_data)
     pickle.dump(valid_data, open(os.path.join(save_path, 'valid.pickle'), 'wb'))
 
     test_ids, test_masks = encode_data(test_text, tokenizer)
-    test_data = (test_ids, test_masks, test_stars)
+    test_data = list(zip(test_ids, test_masks, test_stars))
+    test_data = zip(*test_data)
     pickle.dump(test_data, open(os.path.join(save_path, 'test.pickle'), 'wb'))
 
 
 def encode_data(text, tokenizer):
-    encoding = tokenizer.batch_encode_plus(text, max_length=512, pad_to_max_length=True, return_attention_masks=True)
+    encoding = tokenizer.batch_encode_plus(text, max_length=384, pad_to_max_length=True, return_attention_masks=True)
     ids = encoding['input_ids']
     masks = encoding['attention_mask']
     return ids, masks
 
 
 def load_data(split='train', path='data', buffer_size=10000, batch_size=16, weighted=False):
-    data = pickle.load(open(os.path.join(path, split + '.pickle'), 'rb'))
-    stars = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in data[2]]
-    data = tf.data.Dataset.from_tensor_slices(({'input_ids': data[0], 'attention_mask': data[1]}, stars))
+    ids, masks, stars = pickle.load(open(os.path.join(path, split + '.pickle'), 'rb'))
+    stars = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
+    data = tf.data.Dataset.from_tensor_slices(({'input_ids': ids, 'attention_mask': masks}, stars))
     if split == 'train':
         data = data.shuffle(buffer_size).batch(batch_size)
         if weighted:
@@ -116,5 +125,5 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 
 
 if __name__ == "__main__":
-    split_data()
+    #split_data()
     process_data()
