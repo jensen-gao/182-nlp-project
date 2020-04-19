@@ -1,7 +1,6 @@
 import json_lines
 import os
 import math
-import numpy as np
 import tensorflow as tf
 import pickle
 from transformers import DistilBertTokenizer
@@ -43,66 +42,72 @@ def split_data(load_path='data', save_path='data'):
 
 
 def process_data(load_path='data', save_path='data'):
+    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+
     with open(os.path.join(load_path, 'train_text.txt'), 'r') as f:
         train_text = f.readlines()
+    train_stars = pickle.load(open(os.path.join(load_path, 'train_stars.pickle'), 'rb'))
+    assert len(train_text) == len(train_stars)
+    _write_dataset(train_text, train_stars, tokenizer, 123, os.path.join(save_path, 'train.tfrecord'))
+
     with open(os.path.join(load_path, 'valid_text.txt'), 'r') as f:
         valid_text = f.readlines()
+    valid_stars = pickle.load(open(os.path.join(load_path, 'valid_stars.pickle'), 'rb'))
+    assert len(valid_text) == len(valid_stars)
+    _write_dataset(valid_text, valid_stars, tokenizer, 456, os.path.join(save_path, 'valid.tfrecord'))
+
     with open(os.path.join(load_path, 'test_text.txt'), 'r') as f:
         test_text = f.readlines()
-    train_stars = pickle.load(open(os.path.join(load_path, 'train_stars.pickle'), 'rb'))
-    valid_stars = pickle.load(open(os.path.join(load_path, 'valid_stars.pickle'), 'rb'))
     test_stars = pickle.load(open(os.path.join(load_path, 'test_stars.pickle'), 'rb'))
-
-    assert len(train_text) == len(train_stars)
-    assert len(valid_text) == len(valid_stars)
     assert len(test_text) == len(test_stars)
+    _write_dataset(train_text, train_stars, tokenizer, 789, os.path.join(save_path, 'test.tfrecord'))
 
-    random.seed(123456)
-    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-    ids, masks = encode_data(train_text, tokenizer)
-    data = list(zip(ids, masks, train_stars))
+
+def _write_dataset(text, stars, tokenizer, seed, save_path):
+    input_ids, attention_masks = _encode_data(text, tokenizer)
+    labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
+    data = list(zip(input_ids, attention_masks, labels))
+    random.seed(seed)
     random.shuffle(data)
-    ids, masks, stars = zip(*data)
-    star_labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
-    data = tf.data.Dataset.from_tensor_slices(({'input_ids': data[0], 'attention_mask': data[1]}, stars))
+    writer = tf.io.TFRecordWriter(save_path)
+    for input_ids, attention_mask, label in data:
+        feature = {
+            'input_ids': _create_int_feature(input_ids),
+            'attention_mask': _create_int_feature(attention_mask),
+            'label': _create_int_feature(label)
+        }
+        example = tf.train.Example(features=tf.train.Features(feature=feature))
+        writer.write(example.SerializeToString())
 
 
-    pickle.dump(train_data, open(os.path.join(save_path, 'train.pickle'), 'wb'))
-
-    valid_ids, valid_masks = encode_data(valid_text, tokenizer)
-    valid_data = list(zip(valid_ids, valid_masks, valid_stars))
-    valid_data = zip(*valid_data)
-    pickle.dump(valid_data, open(os.path.join(save_path, 'valid.pickle'), 'wb'))
-
-    test_ids, test_masks = encode_data(test_text, tokenizer)
-    test_data = list(zip(test_ids, test_masks, test_stars))
-    test_data = zip(*test_data)
-    pickle.dump(test_data, open(os.path.join(save_path, 'test.pickle'), 'wb'))
-
-
-def encode_data(text, tokenizer):
+def _encode_data(text, tokenizer):
     encoding = tokenizer.batch_encode_plus(text, max_length=384, pad_to_max_length=True, return_attention_masks=True)
-    ids = encoding['input_ids']
-    masks = encoding['attention_mask']
-    return ids, masks
+    input_ids = encoding['input_ids']
+    attention_masks = encoding['attention_mask']
+    return input_ids, attention_masks
 
 
-def load_data(split='train', path='data', buffer_size=10000, batch_size=16, weighted=False):
-    ids, masks, stars = pickle.load(open(os.path.join(path, split + '.pickle'), 'rb'))
-    stars = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
-    data = tf.data.Dataset.from_tensor_slices(({'input_ids': ids, 'attention_mask': masks}, stars))
+def _create_int_feature(values):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
+
+
+def load_data(split='train', path='data', buffer_size=10000, batch_size=32):
+    dataset = tf.data.TFRecordDataset(os.path.join(path, split + '.tfrecord'))
+    dataset = dataset.map(_decode_record)
     if split == 'train':
-        data = data.shuffle(buffer_size).batch(batch_size)
-        if weighted:
-            n = len(stars)
-            weights = np.sum(stars, axis=0)
-            weights = np.maximum(weights, n - weights)
-            weights = np.sqrt(weights)
-            weights /= np.max(weights)
-            data = data.map(lambda x, y: (x, y, weights))
-        return data
-    data = data.batch(batch_size)
-    return data
+        dataset = dataset.shuffle(buffer_size=buffer_size)
+    dataset = dataset.batch(batch_size)
+    return dataset
+
+
+def _decode_record(record):
+    record = tf.io.parse_single_example(record, {
+        'input_ids': tf.io.FixedLenFeature([384], tf.int64),
+        'attention_mask': tf.io.FixedLenFeature([384], tf.int64),
+        'label': tf.io.FixedLenFeature([4], tf.int64),
+    })
+    label = record.pop('label')
+    return record, label
 
 
 def write_reviews_to_txt(path='data/yelp_review_training_dataset.jsonl', save_path='data/yelp.txt'):
@@ -125,5 +130,5 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 
 
 if __name__ == "__main__":
-    #split_data()
+    split_data()
     process_data()

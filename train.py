@@ -32,9 +32,8 @@ epochs = 4
 batch_size_per_replica = 16
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
-#train_dataset = load_data(split='train', batch_size=batch_size)
+train_dataset = load_data(split='train', batch_size=batch_size)
 valid_dataset = load_data(split='valid', batch_size=batch_size)
-breakpoint()
 
 num_training_steps = int(tf.data.experimental.cardinality(train_dataset)) * epochs
 num_validation_steps = int(tf.data.experimental.cardinality(valid_dataset))
