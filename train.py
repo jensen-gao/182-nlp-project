@@ -3,30 +3,18 @@ import tensorflow as tf
 from data_utils import load_data
 import transformers
 import pickle
-from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalClassification
-from tensorflow.keras import backend as K
+from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalRegression
+from metrics import *
 from math import ceil
 
 
+version = 'final'
 config = transformers.DistilBertConfig.from_pretrained('pretrained/', num_labels=4)
 strategy = tf.distribute.MirroredStrategy()
 loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
-
-def pred_accuracy(y_true, y_pred, threshold=0.0):
-    y_pred = K.sum(K.cast(y_pred > threshold, y_pred.dtype), axis=-1)
-    y_true = K.sum(y_true, axis=-1)
-    return K.mean(K.equal(y_true, y_pred))
-
-
-def pred_abs_error(y_true, y_pred, threshold=0.0):
-    y_pred = K.sum(K.cast(y_pred > threshold, y_pred.dtype), axis=-1)
-    y_true = K.sum(y_true, axis=-1)
-    return K.mean(K.abs(y_pred - y_true))
-
-
 with strategy.scope():
-    model = TFDistilBertForOrdinalClassification.from_pretrained('pretrained/', config=config, from_pt=True)
+    model = TFDistilBertForOrdinalRegression.from_pretrained('pretrained/', config=config, from_pt=True)
     model.compile(optimizer='adam', loss=loss, metrics=[pred_accuracy, pred_abs_error])
 
 epochs = 4
@@ -64,20 +52,17 @@ def record_epoch(epoch, logs):
 
 epoch_callback = tf.keras.callbacks.LambdaCallback(on_epoch_begin=record_epoch)
 
-checkpoint_dir = 'checkpoints'
+checkpoint_dir = os.path.join('checkpoints', version)
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt_{epoch}')
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
-#for i in range(1, 5):
-#    with strategy.scope():
-#        model.load_weights('checkpoints/ckpt_' + str(i))
-#    metrics = model.evaluate(valid_dataset)
-#    with open('eval_metrics_' + str(i) + '.pickle', 'wb') as f:
-#        pickle.dump(metrics, f)
-#    print(metrics)
+history = model.fit(train_dataset, epochs=epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback],
+                    validation_data=valid_dataset, validation_steps=num_validation_steps)
 
-history = model.fit(train_dataset, epochs=epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback], validation_data=valid_dataset, validation_steps=num_validation_steps)
-model.save_pretrained('models')
-with open('train_history.pickle', 'wb') as f:
+save_dir = os.path.join('models', version)
+model.save_pretrained(save_dir)
+
+train_history_dir = os.path.join('train_history', version)
+with open(os.path.join(train_history_dir, 'train_history.pickle'), 'wb') as f:
     pickle.dump(history.history, f)
 

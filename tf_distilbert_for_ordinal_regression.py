@@ -4,9 +4,9 @@ from transformers.modeling_tf_utils import get_initializer
 import tensorflow as tf
 
 
-class TFDistilBertForOrdinalClassification(TFDistilBertPreTrainedModel):
+class TFDistilBertForOrdinalRegression(TFDistilBertPreTrainedModel):
     def __init__(self, config, *inputs, **kwargs):
-        super(TFDistilBertForOrdinalClassification, self).__init__(config, *inputs, **kwargs)
+        super(TFDistilBertForOrdinalRegression, self).__init__(config, *inputs, **kwargs)
         self.num_labels = config.num_labels
 
         self.distilbert = TFDistilBertMainLayer(config, name="distilbert")

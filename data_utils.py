@@ -33,12 +33,16 @@ def split_data(load_path='data', save_path='data'):
         f.writelines(valid_text)
     with open(os.path.join(save_path, 'test_text.txt'), 'w') as f:
         f.writelines(test_text)
+    with open(os.path.join(save_path, 'original_test_text.txt'), 'w') as f:
+        f.writelines(text[train_len + valid_len:])
+
     train_stars = 2 * stars[:train_len]
     valid_stars = 2 * stars[train_len: train_len + valid_len]
     test_stars = 2 * stars[train_len + valid_len:]
     pickle.dump(train_stars, open(os.path.join(save_path, 'train_stars.pickle'), 'wb'))
     pickle.dump(valid_stars, open(os.path.join(save_path, 'valid_stars.pickle'), 'wb'))
     pickle.dump(test_stars, open(os.path.join(save_path, 'test_stars.pickle'), 'wb'))
+    pickle.dump(stars[train_len + valid_len:], open(os.path.join(save_path, 'original_test_stars.pickle'), 'wb'))
 
 
 def process_data(load_path='data', save_path='data'):
@@ -61,6 +65,13 @@ def process_data(load_path='data', save_path='data'):
     test_stars = pickle.load(open(os.path.join(load_path, 'test_stars.pickle'), 'rb'))
     assert len(test_text) == len(test_stars)
     _write_dataset(test_text, test_stars, tokenizer, 789, os.path.join(save_path, 'test.tfrecord'))
+
+    with open(os.path.join(load_path, 'original_test_text.txt'), 'r') as f:
+        original_test_text = f.readlines()
+    original_test_stars = pickle.load(open(os.path.join(load_path, 'original_test_stars.pickle'), 'rb'))
+    assert len(original_test_text) == len(original_test_stars)
+    _write_dataset(original_test_text, original_test_stars, tokenizer, 789,
+                   os.path.join(save_path, 'original_test.tfrecord'))
 
 
 def _write_dataset(text, stars, tokenizer, seed, save_path):
