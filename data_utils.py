@@ -60,7 +60,7 @@ def process_data(load_path='data', save_path='data'):
         test_text = f.readlines()
     test_stars = pickle.load(open(os.path.join(load_path, 'test_stars.pickle'), 'rb'))
     assert len(test_text) == len(test_stars)
-    _write_dataset(train_text, train_stars, tokenizer, 789, os.path.join(save_path, 'test.tfrecord'))
+    _write_dataset(test_text, test_stars, tokenizer, 789, os.path.join(save_path, 'test.tfrecord'))
 
 
 def _write_dataset(text, stars, tokenizer, seed, save_path):
@@ -91,7 +91,7 @@ def _create_int_feature(values):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
 
 
-def load_data(split='train', path='data', buffer_size=10000, batch_size=32):
+def load_data(split='train', path='data', buffer_size=50000, batch_size=32):
     dataset = tf.data.TFRecordDataset(os.path.join(path, split + '.tfrecord'))
     dataset = dataset.map(_decode_record)
     if split == 'train':
@@ -130,5 +130,5 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 
 
 if __name__ == "__main__":
-    split_data()
+    #split_data()
     process_data()
