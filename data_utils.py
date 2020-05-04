@@ -91,7 +91,7 @@ def _write_dataset(text, stars, tokenizer, seed, save_path, ordinal=True):
     if ordinal:
         labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
     else:
-        labels = stars
+        labels = [int(star - 1) for star in stars]
     data = list(zip(input_ids, attention_masks, labels))
     random.seed(seed)
     random.shuffle(data)
@@ -114,7 +114,11 @@ def _encode_data(text, tokenizer):
 
 
 def _create_int_feature(values):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
+    try:
+        values = list(values)
+    except TypeError:
+        values = [values]
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=values))
 
 
 def load_data(split='train', ordinal=True, path='data', buffer_size=50000, batch_size=32):
@@ -122,19 +126,24 @@ def load_data(split='train', ordinal=True, path='data', buffer_size=50000, batch
     if ordinal:
         filename = 'ord_' + filename
     dataset = tf.data.TFRecordDataset(os.path.join(path, filename))
-    dataset = dataset.map(_decode_record)
+    dataset = dataset.map(lambda x: _decode_record(x, ordinal))
     if split == 'train':
         dataset = dataset.shuffle(buffer_size=buffer_size)
     dataset = dataset.batch(batch_size)
     return dataset
 
 
-def _decode_record(record):
-    record = tf.io.parse_single_example(record, {
+def _decode_record(record, ordinal=True):
+    if ordinal:
+        label_len = 4
+    else:
+        label_len = 1
+    features = {
         'input_ids': tf.io.FixedLenFeature([384], tf.int64),
         'attention_mask': tf.io.FixedLenFeature([384], tf.int64),
-        'label': tf.io.FixedLenFeature([4], tf.int64),
-    })
+        'label': tf.io.FixedLenFeature([label_len], tf.int64)
+    }
+    record = tf.io.parse_single_example(record, features)
     label = record.pop('label')
     return record, label
 

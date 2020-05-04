@@ -2,18 +2,42 @@ import tensorflow as tf
 import transformers
 import pickle
 import os
-from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalRegression
+import argparse
+from bert_models.tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalRegression
+from bert_models.tf_distilbert_for_classification import TFDistilBertForClassification
 from data_utils import load_data
 from metrics import *
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--version', '-v', type=str, default='final',
+                    help='Version of model to load.')
+parser.add_argument('--pretrain', '-p', action='store_true', help='Whether to use the model pretrained on the corpus')
+parser.add_argument('--ordinal', '-o', action='store_true',
+                    help='Whether to use ordinal regression instead of classification.')
+parser.add_argument('--as_features', '-f', action='store_false',
+                    help='Whether to freeze the BERT layers and use them only as features instead of fine-tuning.')
+args = parser.parse_args()
 
-config = transformers.DistilBertConfig.from_pretrained('models/final/', num_labels=4)
+model_path = os.path.join('models', args.version)
 strategy = tf.distribute.MirroredStrategy()
-loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+if args.ordinal:
+    model_type = TFDistilBertForOrdinalRegression
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    num_labels = 4
+    metrics = [ord_pred_accuracy, ord_pred_abs_error]
+
+else:
+    model_type = TFDistilBertForClassification
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    num_labels = 5
+    metrics = ['accuracy', pred_abs_error]
+
+config = transformers.DistilBertConfig.from_pretrained(model_path, num_labels=4)
 
 with strategy.scope():
-    model = TFDistilBertForOrdinalRegression.from_pretrained('models/final/', config=config)
-    model.compile(optimizer='adam', loss=loss, metrics=[pred_accuracy, pred_abs_error])
+    model = model_type.from_pretrained(model_path, config=config)
+    model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
 batch_size_per_replica = 16
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
