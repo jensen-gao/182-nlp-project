@@ -45,38 +45,53 @@ def split_data(load_path='data', save_path='data'):
     pickle.dump(stars[train_len + valid_len:], open(os.path.join(save_path, 'original_test_stars.pickle'), 'wb'))
 
 
-def process_data(load_path='data', save_path='data'):
+def process_data(load_path='data', save_path='data', ordinal=True):
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
     with open(os.path.join(load_path, 'train_text.txt'), 'r') as f:
         train_text = f.readlines()
     train_stars = pickle.load(open(os.path.join(load_path, 'train_stars.pickle'), 'rb'))
     assert len(train_text) == len(train_stars)
-    _write_dataset(train_text, train_stars, tokenizer, 123, os.path.join(save_path, 'train.tfrecord'))
+    save_name = 'train.tfrecord'
+    if ordinal:
+        save_name = 'ord_' + save_name
+    _write_dataset(train_text, train_stars, tokenizer, 123, os.path.join(save_path, save_name), ordinal)
 
     with open(os.path.join(load_path, 'valid_text.txt'), 'r') as f:
         valid_text = f.readlines()
     valid_stars = pickle.load(open(os.path.join(load_path, 'valid_stars.pickle'), 'rb'))
     assert len(valid_text) == len(valid_stars)
-    _write_dataset(valid_text, valid_stars, tokenizer, 456, os.path.join(save_path, 'valid.tfrecord'))
+    save_name = 'valid.tfrecord'
+    if ordinal:
+        save_name = 'ord_' + save_name
+    _write_dataset(valid_text, valid_stars, tokenizer, 456, os.path.join(save_path, save_name), ordinal)
 
     with open(os.path.join(load_path, 'test_text.txt'), 'r') as f:
         test_text = f.readlines()
     test_stars = pickle.load(open(os.path.join(load_path, 'test_stars.pickle'), 'rb'))
     assert len(test_text) == len(test_stars)
-    _write_dataset(test_text, test_stars, tokenizer, 789, os.path.join(save_path, 'test.tfrecord'))
+    save_name = 'test.tfrecord'
+    if ordinal:
+        save_name = 'ord_' + save_name
+    _write_dataset(test_text, test_stars, tokenizer, 789, os.path.join(save_path, save_name), ordinal)
 
     with open(os.path.join(load_path, 'original_test_text.txt'), 'r') as f:
         original_test_text = f.readlines()
     original_test_stars = pickle.load(open(os.path.join(load_path, 'original_test_stars.pickle'), 'rb'))
     assert len(original_test_text) == len(original_test_stars)
+    save_name = 'original_test.tfrecord'
+    if ordinal:
+        save_name = 'ord_' + save_name
     _write_dataset(original_test_text, original_test_stars, tokenizer, 789,
-                   os.path.join(save_path, 'original_test.tfrecord'))
+                   os.path.join(save_path, save_name), ordinal)
 
 
-def _write_dataset(text, stars, tokenizer, seed, save_path):
+def _write_dataset(text, stars, tokenizer, seed, save_path, ordinal=True):
     input_ids, attention_masks = _encode_data(text, tokenizer)
-    labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
+    if ordinal:
+        labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
+    else:
+        labels = stars
     data = list(zip(input_ids, attention_masks, labels))
     random.seed(seed)
     random.shuffle(data)
@@ -102,8 +117,11 @@ def _create_int_feature(values):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
 
 
-def load_data(split='train', path='data', buffer_size=50000, batch_size=32):
-    dataset = tf.data.TFRecordDataset(os.path.join(path, split + '.tfrecord'))
+def load_data(split='train', ordinal=True, path='data', buffer_size=50000, batch_size=32):
+    filename = split + '.tfrecord'
+    if ordinal:
+        filename = 'ord_' + filename
+    dataset = tf.data.TFRecordDataset(os.path.join(path, filename))
     dataset = dataset.map(_decode_record)
     if split == 'train':
         dataset = dataset.shuffle(buffer_size=buffer_size)
@@ -141,5 +159,5 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 
 
 if __name__ == "__main__":
-    #split_data()
+    # split_data()
     process_data()

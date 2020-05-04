@@ -1,12 +1,11 @@
 from transformers import TFDistilBertPreTrainedModel, TFDistilBertMainLayer
-from coral import CORAL
 from transformers.modeling_tf_utils import get_initializer
 import tensorflow as tf
 
 
-class TFDistilBertForOrdinalRegression(TFDistilBertPreTrainedModel):
+class TFDistilBertForClassification(TFDistilBertPreTrainedModel):
     def __init__(self, config, as_features=False, *inputs, **kwargs):
-        super(TFDistilBertForOrdinalRegression, self).__init__(config, *inputs, **kwargs)
+        super(TFDistilBertForClassification, self).__init__(config, *inputs, **kwargs)
         self.num_labels = config.num_labels
 
         self.distilbert = TFDistilBertMainLayer(config, name="distilbert", trainable=not as_features)
@@ -16,8 +15,9 @@ class TFDistilBertForOrdinalRegression(TFDistilBertPreTrainedModel):
             activation="relu",
             name="pre_classifier",
         )
-        self.classifier = CORAL(config.num_labels, kernel_initializer=get_initializer(config.initializer_range),
-                                name="classifier")
+        self.classifier = tf.keras.layers.Dense(
+            config.num_labels, kernel_initializer=get_initializer(config.initializer_range), name="classifier"
+        )
         self.dropout = tf.keras.layers.Dropout(config.seq_classif_dropout)
         self.layer_norm = tf.keras.layers.LayerNormalization()
 

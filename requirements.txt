@@ -1,5 +1,5 @@
 numpy
 json_lines
 transformers
-tensorflow
+tensorflow-gpu
 torch
