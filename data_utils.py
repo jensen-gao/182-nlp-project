@@ -7,15 +7,13 @@ from transformers import DistilBertTokenizer
 import random
 
 
-def split_data(load_path='data', save_path='data'):
+def split_data(load_path='data', save_path='data/split_data'):
     with open(os.path.join(load_path, 'yelp.txt'), 'r') as f:
         text = f.readlines()
     with open(os.path.join(load_path, 'paraphrased_yelp.txt'), 'r') as f:
         paraphrased_text = f.readlines()
-    stars = []
-    with open(os.path.join(load_path, 'yelp_review_training_dataset.jsonl'), 'rb') as f:
-        for item in json_lines.reader(f):
-            stars.append(item['stars'])
+    with open(os.path.join(load_path, 'stars.pickle'), 'rb') as f:
+        stars = pickle.load(f)
     assert len(text) == len(paraphrased_text) == len(stars)
     n_data = len(text)
     random.seed(123456)
@@ -45,7 +43,7 @@ def split_data(load_path='data', save_path='data'):
     pickle.dump(stars[train_len + valid_len:], open(os.path.join(save_path, 'original_test_stars.pickle'), 'wb'))
 
 
-def process_data(load_path='data', save_path='data', ordinal=True):
+def process_data(load_path='data', save_path='data/datasets', ordinal=True):
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
     with open(os.path.join(load_path, 'train_text.txt'), 'r') as f:
@@ -121,7 +119,7 @@ def _create_int_feature(values):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=values))
 
 
-def load_data(split='train', ordinal=True, path='data', buffer_size=50000, batch_size=32):
+def load_data(split='train', ordinal=True, path='data/datasets', buffer_size=50000, batch_size=32):
     filename = split + '.tfrecord'
     if ordinal:
         filename = 'ord_' + filename
@@ -148,14 +146,18 @@ def _decode_record(record, ordinal=True):
     return record, label
 
 
-def write_reviews_to_txt(path='data/yelp_review_training_dataset.jsonl', save_path='data/yelp.txt'):
+def split_reviews(path='data/yelp_review_training_dataset.jsonl', save_path='data'):
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
     text = []
+    stars = []
     with open(path, 'rb') as f:
         for item in json_lines.reader(f):
             text.append(tokenizer.basic_tokenizer._clean_text(item['text']) + '\n')
-    with open(save_path, 'w') as f:
+            stars.append(item['stars'])
+    with open(os.path.join(save_path, 'yelp.txt'), 'w') as f:
         f.writelines(text)
+    with open(os.path.join(save_path, 'stars.pickle'), 'wb') as f:
+        pickle.dump(stars, f)
 
 
 def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_path='data/paraphrased_yelp.txt'):
@@ -168,5 +170,5 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 
 
 if __name__ == "__main__":
-    # split_data()
+    split_data()
     process_data()
