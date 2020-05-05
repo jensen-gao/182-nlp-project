@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import transformers
 from transformers import DistilBertTokenizer
-from tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalRegression
+from bert_models.tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalRegression
 
 config = transformers.DistilBertConfig.from_pretrained('models/final/', num_labels=4)
 loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -18,7 +18,7 @@ def eval(text):
 	input_ids = encoding['input_ids']
 	prediction = model.predict([input_ids])
 	stars = np.sum(prediction > 0) + 1
-	return stars
+	return int(stars)
 
 
 if len(sys.argv) > 1:
