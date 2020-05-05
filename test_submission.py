@@ -16,7 +16,8 @@ def eval(text):
 	# This is where you call your model to get the number of stars output
 	encoding = tokenizer.encode_plus(text, max_length=384)
 	input_ids = encoding['input_ids']
-	prediction = model.predict([input_ids])
+	input_ids = np.expand_dims(input_ids, 0)
+	prediction = model.predict_on_batch(input_ids)
 	stars = np.sum(prediction > 0) + 1
 	return int(stars)
 
