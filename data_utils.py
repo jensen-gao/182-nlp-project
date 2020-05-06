@@ -43,7 +43,7 @@ def split_data(load_path='data', save_path='data/split_data'):
     pickle.dump(test_stars, open(os.path.join(save_path, 'test_stars.pickle'), 'wb'))
 
 
-def process_data(load_path='data', save_path='data/datasets'):
+def process_data(load_path='data/split_data', save_path='data/datasets'):
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
     with open(os.path.join(load_path, 'train_text.txt'), 'r') as f:
@@ -162,4 +162,3 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 if __name__ == "__main__":
     split_data()
     process_data()
-    process_data(ordinal=True)
