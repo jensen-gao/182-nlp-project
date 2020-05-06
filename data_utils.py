@@ -24,23 +24,23 @@ def split_data(load_path='data', save_path='data/split_data'):
     valid_len = math.floor(0.1 * n_data)
     train_text = text[:train_len] + paraphrased_text[:train_len]
     valid_text = text[train_len: train_len + valid_len] + paraphrased_text[train_len: train_len + valid_len]
-    test_text = text[train_len + valid_len:] + paraphrased_text[train_len + valid_len:]
+    original_test_text = text[train_len + valid_len:]
+    perturbed_test_text = paraphrased_text[train_len + valid_len:]
     with open(os.path.join(save_path, 'train_text.txt'), 'w') as f:
         f.writelines(train_text)
     with open(os.path.join(save_path, 'valid_text.txt'), 'w') as f:
         f.writelines(valid_text)
-    with open(os.path.join(save_path, 'test_text.txt'), 'w') as f:
-        f.writelines(test_text)
     with open(os.path.join(save_path, 'original_test_text.txt'), 'w') as f:
-        f.writelines(text[train_len + valid_len:])
+        f.writelines(original_test_text)
+    with open(os.path.join(save_path, 'perturbed_test_text.txt'), 'w') as f:
+        f.writelines(perturbed_test_text)
 
     train_stars = 2 * stars[:train_len]
     valid_stars = 2 * stars[train_len: train_len + valid_len]
-    test_stars = 2 * stars[train_len + valid_len:]
+    test_stars = stars[train_len + valid_len:]
     pickle.dump(train_stars, open(os.path.join(save_path, 'train_stars.pickle'), 'wb'))
     pickle.dump(valid_stars, open(os.path.join(save_path, 'valid_stars.pickle'), 'wb'))
     pickle.dump(test_stars, open(os.path.join(save_path, 'test_stars.pickle'), 'wb'))
-    pickle.dump(stars[train_len + valid_len:], open(os.path.join(save_path, 'original_test_stars.pickle'), 'wb'))
 
 
 def process_data(load_path='data', save_path='data/datasets', ordinal=True):
@@ -64,24 +64,24 @@ def process_data(load_path='data', save_path='data/datasets', ordinal=True):
         save_name = 'ord_' + save_name
     _write_dataset(valid_text, valid_stars, tokenizer, 456, os.path.join(save_path, save_name), ordinal)
 
-    with open(os.path.join(load_path, 'test_text.txt'), 'r') as f:
-        test_text = f.readlines()
     test_stars = pickle.load(open(os.path.join(load_path, 'test_stars.pickle'), 'rb'))
-    assert len(test_text) == len(test_stars)
-    save_name = 'test.tfrecord'
-    if ordinal:
-        save_name = 'ord_' + save_name
-    _write_dataset(test_text, test_stars, tokenizer, 789, os.path.join(save_path, save_name), ordinal)
 
     with open(os.path.join(load_path, 'original_test_text.txt'), 'r') as f:
         original_test_text = f.readlines()
-    original_test_stars = pickle.load(open(os.path.join(load_path, 'original_test_stars.pickle'), 'rb'))
-    assert len(original_test_text) == len(original_test_stars)
+    assert len(original_test_text) == len(test_stars)
     save_name = 'original_test.tfrecord'
     if ordinal:
         save_name = 'ord_' + save_name
-    _write_dataset(original_test_text, original_test_stars, tokenizer, 789,
+    _write_dataset(original_test_text, test_stars, tokenizer, 789,
                    os.path.join(save_path, save_name), ordinal)
+
+    with open(os.path.join(load_path, 'perturbed_test_text.txt'), 'r') as f:
+        perturbed_test_text = f.readlines()
+    assert len(perturbed_test_text) == len(test_stars)
+    save_name = 'perturbed_test.tfrecord'
+    if ordinal:
+        save_name = 'ord_' + save_name
+    _write_dataset(perturbed_test_text, test_stars, tokenizer, 789, os.path.join(save_path, save_name), ordinal)
 
 
 def _write_dataset(text, stars, tokenizer, seed, save_path, ordinal=True):
@@ -172,3 +172,4 @@ def combine_paraphrased(path='back_translate/back_trans_data/paraphrase', save_p
 if __name__ == "__main__":
     split_data()
     process_data()
+    process_data(ordinal=True)
