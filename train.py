@@ -89,6 +89,8 @@ history = model.fit(train_dataset, epochs=epochs, callbacks=[epoch_callback, che
                     validation_data=valid_dataset, validation_steps=num_validation_steps)
 
 save_dir = os.path.join('models', args.version)
+if not os.path.isdir(save_dir):
+    os.mkdir(save_dir)
 model.save_pretrained(save_dir)
 
 train_history_dir = os.path.join('train_history', args.version)
