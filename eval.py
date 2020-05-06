@@ -42,12 +42,12 @@ with strategy.scope():
 batch_size_per_replica = 16
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
-test_dataset = load_data(split='test', batch_size=batch_size)
-original_test_dataset = load_data(split='original_test', batch_size=batch_size)
+original_test_dataset = load_data(split='original_test', ordinal=args.ordinal, batch_size=batch_size)
+perturbed_test_dataset = load_data(split='perturbed_test', ordinal=args.ordinal, batch_size=batch_size)
 
-test_results = model.evaluate(test_dataset)
 original_test_results = model.evaluate(original_test_dataset)
-results = {'test_results': test_results, 'original_test_results': original_test_results}
+perturbed_test_results = model.evaluate(perturbed_test_dataset)
+results = {'original_test_results': original_test_results, 'perturbed_test_results': perturbed_test_results}
 
 with open(os.path.join('test_results', 'results.pickle'), 'wb') as f:
     pickle.dump(results, f)

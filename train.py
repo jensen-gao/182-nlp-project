@@ -55,7 +55,6 @@ valid_dataset = load_data(split='valid', ordinal=args.ordinal, batch_size=batch_
 
 num_examples = ceil(747010 / batch_size)
 num_training_steps = num_examples * epochs
-num_validation_steps = ceil(106714 / batch_size)
 num_warmup_steps = num_training_steps // 10
 base_learning_rate = 2e-5
 current_epoch = 0
@@ -86,7 +85,7 @@ checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt_{epoch}')
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
 history = model.fit(train_dataset, epochs=epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback],
-                    validation_data=valid_dataset, validation_steps=num_validation_steps)
+                    validation_data=valid_dataset)
 
 save_dir = os.path.join('models', args.version)
 if not os.path.isdir(save_dir):
@@ -94,6 +93,8 @@ if not os.path.isdir(save_dir):
 model.save_pretrained(save_dir)
 
 train_history_dir = os.path.join('train_history', args.version)
+if not os.path.isdir(train_history_dir):
+    os.mkdir(train_history_dir)
 with open(os.path.join(train_history_dir, 'train_history.pickle'), 'wb') as f:
     pickle.dump(history.history, f)
 
