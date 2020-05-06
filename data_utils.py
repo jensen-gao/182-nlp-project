@@ -43,58 +43,44 @@ def split_data(load_path='data', save_path='data/split_data'):
     pickle.dump(test_stars, open(os.path.join(save_path, 'test_stars.pickle'), 'wb'))
 
 
-def process_data(load_path='data', save_path='data/datasets', ordinal=True):
+def process_data(load_path='data', save_path='data/datasets'):
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
     with open(os.path.join(load_path, 'train_text.txt'), 'r') as f:
         train_text = f.readlines()
     train_stars = pickle.load(open(os.path.join(load_path, 'train_stars.pickle'), 'rb'))
     assert len(train_text) == len(train_stars)
-    save_name = 'train.tfrecord'
-    if ordinal:
-        save_name = 'ord_' + save_name
-    _write_dataset(train_text, train_stars, tokenizer, 123, os.path.join(save_path, save_name), ordinal)
+    _write_dataset(train_text, train_stars, tokenizer, 123, save_path, 'train.tfrecord')
 
     with open(os.path.join(load_path, 'valid_text.txt'), 'r') as f:
         valid_text = f.readlines()
     valid_stars = pickle.load(open(os.path.join(load_path, 'valid_stars.pickle'), 'rb'))
     assert len(valid_text) == len(valid_stars)
-    save_name = 'valid.tfrecord'
-    if ordinal:
-        save_name = 'ord_' + save_name
-    _write_dataset(valid_text, valid_stars, tokenizer, 456, os.path.join(save_path, save_name), ordinal)
+    _write_dataset(valid_text, valid_stars, tokenizer, 456, save_path, 'valid.tfrecord')
 
     test_stars = pickle.load(open(os.path.join(load_path, 'test_stars.pickle'), 'rb'))
 
     with open(os.path.join(load_path, 'original_test_text.txt'), 'r') as f:
         original_test_text = f.readlines()
     assert len(original_test_text) == len(test_stars)
-    save_name = 'original_test.tfrecord'
-    if ordinal:
-        save_name = 'ord_' + save_name
-    _write_dataset(original_test_text, test_stars, tokenizer, 789,
-                   os.path.join(save_path, save_name), ordinal)
+    _write_dataset(original_test_text, test_stars, tokenizer, 789, save_path, 'original_test.tfrecord')
 
     with open(os.path.join(load_path, 'perturbed_test_text.txt'), 'r') as f:
         perturbed_test_text = f.readlines()
     assert len(perturbed_test_text) == len(test_stars)
-    save_name = 'perturbed_test.tfrecord'
-    if ordinal:
-        save_name = 'ord_' + save_name
-    _write_dataset(perturbed_test_text, test_stars, tokenizer, 789, os.path.join(save_path, save_name), ordinal)
+    _write_dataset(perturbed_test_text, test_stars, tokenizer, 789, save_path, 'perturbed_test.tfrecord')
 
 
-def _write_dataset(text, stars, tokenizer, seed, save_path, ordinal=True):
+def _write_dataset(text, stars, tokenizer, seed, save_path, filename):
     input_ids, attention_masks = _encode_data(text, tokenizer)
-    if ordinal:
-        labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
-    else:
-        labels = [int(star - 1) for star in stars]
-    data = list(zip(input_ids, attention_masks, labels))
+    labels = [int(star - 1) for star in stars]
+    ord_labels = [[1] * (int(star) - 1) + [0] * (4 - int(star) + 1) for star in stars]
+    data = list(zip(input_ids, attention_masks, labels, ord_labels))
     random.seed(seed)
     random.shuffle(data)
-    writer = tf.io.TFRecordWriter(save_path)
-    for input_ids, attention_mask, label in data:
+    writer = tf.io.TFRecordWriter(os.path.join(save_path, filename))
+    ord_writer = tf.io.TFRecordWriter(os.path.join(save_path, 'ord_' + filename))
+    for input_ids, attention_mask, label, ord_label in data:
         feature = {
             'input_ids': _create_int_feature(input_ids),
             'attention_mask': _create_int_feature(attention_mask),
@@ -102,6 +88,10 @@ def _write_dataset(text, stars, tokenizer, seed, save_path, ordinal=True):
         }
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
+
+        feature['label'] = _create_int_feature(ord_label)
+        example = tf.train.Example(features=tf.train.Features(feature=feature))
+        ord_writer.write(example.SerializeToString())
 
 
 def _encode_data(text, tokenizer):
