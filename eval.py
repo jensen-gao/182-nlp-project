@@ -33,7 +33,7 @@ else:
     num_labels = 5
     metrics = ['accuracy', pred_abs_error]
 
-config = transformers.DistilBertConfig.from_pretrained(model_path, num_labels=4)
+config = transformers.DistilBertConfig.from_pretrained(model_path, num_labels=num_labels)
 
 with strategy.scope():
     model = model_type.from_pretrained(model_path, config=config)
@@ -42,12 +42,17 @@ with strategy.scope():
 batch_size_per_replica = 16
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
+test_val = load_data(split='valid', ordinal=args.ordinal, batch_size=batch_size)
 original_test_dataset = load_data(split='original_test', ordinal=args.ordinal, batch_size=batch_size)
 perturbed_test_dataset = load_data(split='perturbed_test', ordinal=args.ordinal, batch_size=batch_size)
 
+test_val_results = model.evaluate(test_val)
 original_test_results = model.evaluate(original_test_dataset)
 perturbed_test_results = model.evaluate(perturbed_test_dataset)
-results = {'original_test_results': original_test_results, 'perturbed_test_results': perturbed_test_results}
+results = {'val_results' : test_val_results, 'original_test_results': original_test_results, 'perturbed_test_results': perturbed_test_results}
+
+if not os.path.isdir('test_results'):
+    os.mkdir('test_results')
 
 with open(os.path.join('test_results', 'results.pickle'), 'wb') as f:
     pickle.dump(results, f)

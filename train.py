@@ -46,7 +46,7 @@ with strategy.scope():
     model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
 
-epochs = 4
+epochs = 1
 batch_size_per_replica = 16
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
