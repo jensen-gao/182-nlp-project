@@ -33,7 +33,7 @@ else:
     num_labels = 5
     metrics = ['accuracy', pred_abs_error]
 
-config = transformers.DistilBertConfig.from_pretrained(model_path, num_labels=4)
+config = transformers.DistilBertConfig.from_pretrained(model_path, num_labels=num_labels)
 
 with strategy.scope():
     model = model_type.from_pretrained(model_path, config=config)
