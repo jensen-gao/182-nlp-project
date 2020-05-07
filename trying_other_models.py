@@ -13,23 +13,23 @@ config = transformers.DistilBertConfig.from_pretrained('models/bert_feat_class/'
 loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 model = TFDistilBertForClassification.from_pretrained('models/bert_feat_class/', config=config)
 model.compile(optimizer='adam', loss=loss)
-#class_models.append(model)
+class_models.append(model)
 
 config2 = transformers.DistilBertConfig.from_pretrained('models/bert_feat_ord/', num_labels=4)
 loss2 = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 model2 = TFDistilBertForOrdinalRegression.from_pretrained('models/bert_feat_ord/', config=config2)
 model2.compile(optimizer='adam', loss=loss2)
-#ord_models.append(model2)
+ord_models.append(model2)
 
 config3 = transformers.DistilBertConfig.from_pretrained('models/bert_nofeat_class/', num_labels=5)
 model3 = TFDistilBertForClassification.from_pretrained('models/bert_nofeat_class/', config=config3)
 model3.compile(optimizer='adam', loss=loss)
 class_models.append(model3)
 
-#config4 = transformers.DistilBertConfig.from_pretrained('models/bert_nofeat_ord/', num_labels=4)
-#model4 = TFDistilBertForOrdinalRegression.from_pretrained('models/bert_nofeat_ord/', config=config4)
-#model4.compile(optimizer='adam', loss=loss2)
-#ord_models.append(model4)
+config4 = transformers.DistilBertConfig.from_pretrained('models/bert_nofeat_ord/', num_labels=4)
+model4 = TFDistilBertForOrdinalRegression.from_pretrained('models/bert_nofeat_ord/', config=config4)
+model4.compile(optimizer='adam', loss=loss2)
+ord_models.append(model4)
 
 tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
