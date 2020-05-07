@@ -4,6 +4,7 @@ import tensorflow as tf
 import transformers
 from transformers import DistilBertTokenizer
 from bert_models.tf_distilbert_for_ordinal_regression import TFDistilBertForOrdinalRegression
+from bert_models.tf_distilbert_for_classification import TFDistilBertForClassification
 
 class_models = []
 ord_models = []
@@ -21,7 +22,7 @@ model2.compile(optimizer='adam', loss=loss2)
 #ord_models.append(model2)
 
 config3 = transformers.DistilBertConfig.from_pretrained('models/bert_nofeat_class/', num_labels=5)
-model3 = TFDistilBertForOrdinalRegression.from_pretrained('models/bert_nofeat_class/', config=config3)
+model3 = TFDistilBertForClassification.from_pretrained('models/bert_nofeat_class/', config=config3)
 model3.compile(optimizer='adam', loss=loss)
 class_models.append(model3)
 
@@ -47,7 +48,7 @@ def eval(text):
 		prediction = model.predict_on_batch(input_ids)
 		total_stars.append(np.sum(prediction > 0) + 1)
 
-	stars = np.floor(np.mean(stars) + 0.5)
+	stars = np.floor(np.mean(total_stars) + 0.5)
 	return int(stars)
 
 
