@@ -8,15 +8,15 @@ from metrics import *
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version', '-v', type=str, default='final',
+parser.add_argument('--version', '-v', type=str, default='earlier_model',
                     help='Version of model, used for naming the saved files.')
 parser.add_argument('--pretrain', '-p', action='store_true', help='Whether to use the model pretrained on the corpus')
 parser.add_argument('--ordinal', '-o', action='store_true',
                     help='Whether to use ordinal regression instead of classification.')
 parser.add_argument('--as_features', '-f', action='store_true',
                     help='Whether to freeze the BERT layers and use them only as features instead of fine-tuning.')
-parser.add_argument('--ckpt_path', '-c', type=str, default='final',
-                    help='Path to checkpoin files.')
+parser.add_argument('--ckpt_path', '-c', type=str, default='checkpoints/final/ckpt_1',
+                    help='Path to checkpoint files.')
 args = parser.parse_args()
 
 
