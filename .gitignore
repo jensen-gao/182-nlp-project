@@ -1,3 +1,6 @@
+data/paraphrased_yelp.txt
+data/stars.pickle
+data/yelp.txt
 back_translate/yelp.txt
 yelp_review_training_dataset.jsonl
 .DS_Store
