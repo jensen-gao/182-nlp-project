@@ -36,6 +36,7 @@ def eval(text):
 	stars_3 = np.argmax(prediction_3, axis=1) + 1
 	return np.round(stars_1 + stars_2 + stars_3) / 3
 
+
 if len(sys.argv) > 1:
 	validation_file = sys.argv[1]
 	with open("output.jsonl", "w") as fw:
@@ -52,6 +53,10 @@ if len(sys.argv) > 1:
 						fw.write(json.dumps({"review_id": review_ids[i], "predicted_stars": int(results[i])})+"\n")
 					review_ids = []
 					text = []
+			if review_ids:
+				results = eval(text)
+				for i in range(len(review_ids)):
+					fw.write(json.dumps({"review_id": review_ids[i], "predicted_stars": int(results[i])}) + "\n")
 	print("Output prediction file written")
 else:
 	print("No validation file given")
