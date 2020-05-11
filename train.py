@@ -19,6 +19,10 @@ parser.add_argument('--ordinal', '-o', action='store_true',
 parser.add_argument('--as_features', '-f', action='store_true',
                     help='Whether to freeze the BERT layers and use them only as features instead of fine-tuning.')
 parser.add_argument('--epochs', '-e', type=int, default=4, help='Number of epochs to train for.')
+parser.add_argument('--layer_norm', '-n', action='store_true',
+                    help='Whether to use layer normalization before the classification output')
+parser.add_argument('--batch_size', '-b', type=int, default=16,
+                    help='Batch size to use for training')
 args = parser.parse_args()
 
 strategy = tf.distribute.MirroredStrategy()
@@ -41,12 +45,15 @@ else:
 
 with strategy.scope():
     if args.pretrain:
-        model = model_type.from_pretrained('pretrained/', config=config, as_features=args.as_features, from_pt=True)
+        model = model_type.from_pretrained('pretrained/', config=config, as_features=args.as_features,
+                                           use_layer_norm=args.layer_norm, from_pt=True)
     else:
-        model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features)
+        model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features,
+                                           use_layer_norm=args.layer_norm)
     model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
-batch_size_per_replica = 16
+
+batch_size_per_replica = args.batch_size
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
 train_dataset = load_data(split='train', ordinal=args.ordinal, batch_size=batch_size)

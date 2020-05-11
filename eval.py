@@ -16,6 +16,8 @@ parser.add_argument('--ordinal', '-o', action='store_true',
                     help='Whether to use ordinal regression instead of classification.')
 parser.add_argument('--as_features', '-f', action='store_false',
                     help='Whether to freeze the BERT layers and use them only as features instead of fine-tuning.')
+parser.add_argument('--batch_size', '-b', type=int, default=16,
+                    help='Batch size to use for training')
 args = parser.parse_args()
 
 model_path = os.path.join('models', args.version)
@@ -39,7 +41,7 @@ with strategy.scope():
     model = model_type.from_pretrained(model_path, config=config)
     model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
-batch_size_per_replica = 16
+batch_size_per_replica = args.batch_size
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
 original_test_dataset = load_data(split='original_test', ordinal=args.ordinal, batch_size=batch_size)

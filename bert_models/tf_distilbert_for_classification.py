@@ -4,9 +4,10 @@ import tensorflow as tf
 
 
 class TFDistilBertForClassification(TFDistilBertPreTrainedModel):
-    def __init__(self, config, as_features=False, *inputs, **kwargs):
+    def __init__(self, config, as_features=False, use_layer_norm=True, *inputs, **kwargs):
         super(TFDistilBertForClassification, self).__init__(config, *inputs, **kwargs)
         self.num_labels = config.num_labels
+        self.use_layer_norm = use_layer_norm
 
         self.distilbert = TFDistilBertMainLayer(config, name="distilbert", trainable=not as_features)
         self.pre_classifier = tf.keras.layers.Dense(
@@ -27,7 +28,8 @@ class TFDistilBertForClassification(TFDistilBertPreTrainedModel):
         hidden_state = distilbert_output[0]  # (bs, seq_len, dim)
         pooled_output = hidden_state[:, 0]  # (bs, dim)
         pooled_output = self.pre_classifier(pooled_output)  # (bs, dim)
-        pooled_output = self.layer_norm(pooled_output)
+        if self.use_layer_norm:
+            pooled_output = self.layer_norm(pooled_output)
         pooled_output = self.dropout(pooled_output, training=kwargs.get("training", False))  # (bs, dim)
         logits = self.classifier(pooled_output)  # (bs, dim)
         return logits
