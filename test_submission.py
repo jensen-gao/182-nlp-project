@@ -29,8 +29,8 @@ def eval(text):
 	input_ids = np.array(encoding['input_ids'])
 	attention_masks = np.array(encoding['attention_mask'])
 	prediction_1 = model_1.predict_on_batch([input_ids, attention_masks])
-	prediction_2 = model_2.predict_on_batch(input_ids)
-	prediction_3 = model_3.predict_on_batch(input_ids)
+	prediction_2 = model_2.predict_on_batch([input_ids, attention_masks])
+	prediction_3 = model_3.predict_on_batch([input_ids, attention_masks])
 	stars_1 = np.argmax(prediction_1, axis=1) + 1
 	stars_2 = np.argmax(prediction_2, axis=1) + 1
 	stars_3 = np.argmax(prediction_3, axis=1) + 1
