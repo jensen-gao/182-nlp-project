@@ -34,7 +34,7 @@ def eval(text):
 	stars_1 = np.argmax(prediction_1, axis=1) + 1
 	stars_2 = np.argmax(prediction_2, axis=1) + 1
 	stars_3 = np.argmax(prediction_3, axis=1) + 1
-	return np.round(stars_1 + stars_2 + stars_3) / 3
+	return np.round((stars_1 + stars_2 + stars_3) / 3)
 
 
 if len(sys.argv) > 1:
