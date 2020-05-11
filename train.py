@@ -20,7 +20,7 @@ parser.add_argument('--as_features', '-f', action='store_true',
                     help='Whether to freeze the BERT layers and use them only as features instead of fine-tuning.')
 parser.add_argument('--loss_weights', '-lw', nargs='+', default=[1, 1, 1, 1, 1],
                     help='Loss weights for each possible star label')
-parser.add_argument('--layer_norm', '-n', action='store_true',
+parser.add_argument('--disable_layer_norm', '-dn', action='store_true',
                     help='Whether to use layer normalization before the classification output')
 parser.add_argument('--batch_size', '-b', type=int, default=16,
                     help='Batch size to use for training')
@@ -85,9 +85,9 @@ else:
 
 with strategy.scope():
     if args.pretrain:
-        model = model_type.from_pretrained('pretrained/', config=config, as_features=args.as_features, use_layer_norm=args.layer_norm, from_pt=True)
+        model = model_type.from_pretrained('pretrained/', config=config, as_features=args.as_features, use_layer_norm=not args.disable_layer_norm, from_pt=True)
     else:
-        model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features, use_layer_norm=args.layer_norm)
+        model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features, use_layer_norm=not args.disable_layer_norm)
     model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
 
