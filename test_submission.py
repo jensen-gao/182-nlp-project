@@ -8,18 +8,14 @@ from bert_models.tf_distilbert_for_classification import TFDistilBertForClassifi
 
 model_1_path = 'models/epoch_1'
 model_2_path = 'models/epoch_2'
-model_3_path = 'models/epoch_3'
 
 model_1_config = transformers.DistilBertConfig.from_pretrained(model_1_path, num_labels=5)
 model_2_config = transformers.DistilBertConfig.from_pretrained(model_2_path, num_labels=5)
-model_3_config = transformers.DistilBertConfig.from_pretrained(model_3_path, num_labels=5)
 class_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 model_1 = TFDistilBertForClassification.from_pretrained(model_1_path, config=model_1_config)
 model_2 = TFDistilBertForClassification.from_pretrained(model_2_path, config=model_2_config)
-model_3 = TFDistilBertForClassification.from_pretrained(model_3_path, config=model_3_config)
 model_1.compile(optimizer='adam', loss=class_loss)
 model_2.compile(optimizer='adam', loss=class_loss)
-model_3.compile(optimizer='adam', loss=class_loss)
 tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
 
 
@@ -30,11 +26,9 @@ def eval(text):
 	attention_masks = np.array(encoding['attention_mask'])
 	prediction_1 = model_1.predict_on_batch([input_ids, attention_masks])
 	prediction_2 = model_2.predict_on_batch([input_ids, attention_masks])
-	prediction_3 = model_3.predict_on_batch([input_ids, attention_masks])
 	stars_1 = np.argmax(prediction_1, axis=1) + 1
 	stars_2 = np.argmax(prediction_2, axis=1) + 1
-	stars_3 = np.argmax(prediction_3, axis=1) + 1
-	return np.round((stars_1 + stars_2 + stars_3) / 3)
+	return np.floor(((stars_1 + stars_2) / 2) + 0.5)
 
 
 if len(sys.argv) > 1:
