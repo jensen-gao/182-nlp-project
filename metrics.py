@@ -15,4 +15,5 @@ def ord_pred_abs_error(y_true, y_pred, threshold=0.0):
 
 def pred_abs_error(y_true, y_pred):
     y_pred = K.cast(K.argmax(y_pred, axis=-1), y_pred.dtype)
+    y_true = K.cast(K.sum(y_true, axis=-1), y_pred.dtype)
     return K.mean(K.abs(y_pred - y_true))
