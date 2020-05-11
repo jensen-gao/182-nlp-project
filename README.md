@@ -5,3 +5,5 @@ Then run ```python train.py``` with appropriate command line arguments to train 
 - ```-o``` will train an ordinal regression model instead of the default classification model.
 - ```-f``` will freeze the pretrained layers instead of training the entire model end-to-end.
 - ```-e NUM_EPOCHS``` will set the number of training epochs to NUM_EPOCHS (default 4).
+- ```-n``` will add layer normalization before the final classification output.
+- ```-b BATCHES_PER_GPU``` will set the batch size per GPU (total batch size is BATCHES_PER_GPU x # of GPUs).
