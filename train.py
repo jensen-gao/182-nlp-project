@@ -18,6 +18,7 @@ parser.add_argument('--ordinal', '-o', action='store_true',
                     help='Whether to use ordinal regression instead of classification.')
 parser.add_argument('--as_features', '-f', action='store_true',
                     help='Whether to freeze the BERT layers and use them only as features instead of fine-tuning.')
+parser.add_argument('--epochs', '-e', type=int, default=4, help='Number of epochs to train for.')
 args = parser.parse_args()
 
 strategy = tf.distribute.MirroredStrategy()
@@ -45,8 +46,6 @@ with strategy.scope():
         model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features)
     model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
-
-epochs = 4
 batch_size_per_replica = 16
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
@@ -54,7 +53,7 @@ train_dataset = load_data(split='train', ordinal=args.ordinal, batch_size=batch_
 valid_dataset = load_data(split='valid', ordinal=args.ordinal, batch_size=batch_size)
 
 num_examples = ceil(747010 / batch_size)
-num_training_steps = num_examples * epochs
+num_training_steps = num_examples * args.epochs
 num_warmup_steps = num_training_steps // 10
 base_learning_rate = 2e-5
 current_epoch = 0
@@ -84,7 +83,7 @@ checkpoint_dir = os.path.join('checkpoints', args.version)
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt_{epoch}')
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
-history = model.fit(train_dataset, epochs=epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback],
+history = model.fit(train_dataset, epochs=args.epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback],
                     validation_data=valid_dataset)
 
 save_dir = os.path.join('models', args.version)
@@ -97,4 +96,3 @@ if not os.path.isdir(train_history_dir):
     os.mkdir(train_history_dir)
 with open(os.path.join(train_history_dir, 'train_history.pickle'), 'wb') as f:
     pickle.dump(history.history, f)
-
