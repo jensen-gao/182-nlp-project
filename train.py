@@ -47,9 +47,11 @@ def make_weighted_loss(loss_type, weights, ord=False):
     loss_fn = loss_type(from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
 
     def loss(y_true, y_pred):
+        print("Orig loss:", tf.reduce_sum(loss_fn(y_true, y_pred)))
         indices = tf.cast(tf.reduce_sum(y_true, axis=1) if ord else tf.constant(y_true), tf.int32)
         losses = loss_fn(y_true, y_pred)
         weighted_losses = tf.gather(weights, indices) * losses
+        print("Weighted loss:", tf.reduce_mean(weighted_losses))
         return tf.reduce_mean(weighted_losses)
     
     return loss
