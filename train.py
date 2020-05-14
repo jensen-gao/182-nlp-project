@@ -22,6 +22,7 @@ parser.add_argument('--loss_weights', '-lw', nargs='+', default=[1, 1, 1, 1, 1],
                     help='Loss weights for each possible star label')
 parser.add_argument('--disable_layer_norm', '-dn', action='store_true',
                     help='Whether to use layer normalization before the classification output')
+parser.add_argument('--epochs', '-e', type=int, default=4, help='Number of epochs to train for.')
 parser.add_argument('--batch_size', '-b', type=int, default=16,
                     help='Batch size to use for training')
 args = parser.parse_args()
@@ -69,12 +70,12 @@ if weighted_loss:
 
 if args.ordinal:
     model_type = TFDistilBertForOrdinalRegression
-    loss = WeightedBinaryCrossentropy if weighted_loss else BinaryCrossentropy
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
     num_labels = 4
     metrics = [ord_pred_accuracy, ord_pred_abs_error]
 else:
     model_type = TFDistilBertForClassification
-    loss = WeightedSparseCategoricalCrossentropy if weighted_loss else SparseCategoricalCrossentropy
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     num_labels = 5
     metrics = ['accuracy', pred_abs_error]
 
@@ -85,13 +86,14 @@ else:
 
 with strategy.scope():
     if args.pretrain:
-        model = model_type.from_pretrained('pretrained/', config=config, as_features=args.as_features, use_layer_norm=not args.disable_layer_norm, from_pt=True)
+        model = model_type.from_pretrained('pretrained/', config=config, as_features=args.as_features, 
+                                            use_layer_norm=not args.disable_layer_norm, from_pt=True)
     else:
-        model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features, use_layer_norm=not args.disable_layer_norm)
+        model = model_type.from_pretrained('distilbert-base-uncased', config=config, as_features=args.as_features, 
+                                            use_layer_norm=not args.disable_layer_norm)
     model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
 
-epochs = 4
 batch_size_per_replica = args.batch_size
 batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
@@ -99,7 +101,7 @@ train_dataset = load_data(split='train', ordinal=args.ordinal, batch_size=batch_
 valid_dataset = load_data(split='valid', ordinal=args.ordinal, batch_size=batch_size)
 
 num_examples = ceil(747010 / batch_size)
-num_training_steps = num_examples * epochs
+num_training_steps = num_examples * args.epochs
 num_warmup_steps = num_training_steps // 10
 base_learning_rate = 2e-5
 current_epoch = 0
@@ -129,7 +131,7 @@ checkpoint_dir = os.path.join('checkpoints', args.version)
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt_{epoch}')
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
-history = model.fit(train_dataset, epochs=epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback],
+history = model.fit(train_dataset, epochs=args.epochs, callbacks=[epoch_callback, checkpoint_callback, lr_callback],
                     validation_data=valid_dataset)
 
 save_dir = os.path.join('models', args.version)
@@ -142,4 +144,3 @@ if not os.path.isdir(train_history_dir):
     os.mkdir(train_history_dir)
 with open(os.path.join(train_history_dir, 'train_history.pickle'), 'wb') as f:
     pickle.dump(history.history, f)
-

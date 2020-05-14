@@ -51,7 +51,7 @@ def split_data(load_path='data', save_path='data/split_data'):
         f.writelines(perturbed_test_text)
 
     # Save the star counts to a pickle file
-    train_stars = 2 * stars[:train_len] # labels repeated once for the paraphrased reviews
+    train_stars = 2 * stars[:train_len]  # labels repeated once for the paraphrased reviews
     valid_stars = 2 * stars[train_len: train_len + valid_len]
     test_stars = stars[train_len + valid_len:]
     pickle.dump(train_stars, open(os.path.join(save_path, 'train_stars.pickle'), 'wb'))
@@ -133,7 +133,8 @@ def _encode_data(text, tokenizer, max_length=MAX_LENGTH):
     """
     Tokenizes and encodes the data in `text`. Returns the encoded input ids and attention mask (to identify padded tokens).
     """
-    encoding = tokenizer.batch_encode_plus(text, max_length=max_length, pad_to_max_length=True, return_attention_masks=True)
+    encoding = tokenizer.batch_encode_plus(text, max_length=max_length, pad_to_max_length=True,
+                                           return_attention_masks=True)
     input_ids = encoding['input_ids']
     attention_masks = encoding['attention_mask']
     return input_ids, attention_masks
@@ -147,7 +148,8 @@ def _create_int_feature(values):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=values))
 
 
-def load_data(split='train', ordinal=True, path='data/datasets', buffer_size=50000, batch_size=32, max_length=MAX_LENGTH):
+def load_data(split='train', ordinal=True, path='data/datasets', buffer_size=50000, batch_size=32,
+              max_length=MAX_LENGTH):
     """
     Loads data from a TFRecord file and returns it as a batched TFRecordDataset.
     """
