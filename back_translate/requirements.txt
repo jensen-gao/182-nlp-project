@@ -1,4 +1,4 @@
-tensorflow-gpu==1.13.2
+tensorflow-gpu==2.6.4
 nltk==3.4
 tensor2tensor==1.13.4
 tensorflow-probability==0.6.0
